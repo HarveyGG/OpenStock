@@ -1,7 +1,7 @@
 'use server';
 
 import {auth} from "@/lib/better-auth/auth";
-import {inngest} from "@/lib/inngest/client";
+import {welcomeEmailQueue} from "@/lib/queue/client";
 import {headers} from "next/headers";
 
 export const signUpWithEmail = async ({ email, password, fullName, country, investmentGoals, riskTolerance, preferredIndustry }: SignUpFormData) => {
@@ -9,16 +9,23 @@ export const signUpWithEmail = async ({ email, password, fullName, country, inve
         const response = await auth.api.signUpEmail({ body: { email, password, name: fullName } })
 
         if(response) {
-            await inngest.send({
-                name: 'app/user.created',
-                data: { email, name: fullName, country, investmentGoals, riskTolerance, preferredIndustry }
+            await welcomeEmailQueue.add('send-welcome-email', {
+                email,
+                name: fullName,
+                country,
+                investmentGoals,
+                riskTolerance,
+                preferredIndustry
+            }).catch((err) => {
+                console.error('Failed to queue welcome email:', err)
             })
         }
 
         return { success: true, data: response }
     } catch (e) {
-        console.log('Sign up failed', e)
-        return { success: false, error: 'Sign up failed' }
+        console.error('Sign up failed', e)
+        const errorMessage = e instanceof Error ? e.message : 'Sign up failed'
+        return { success: false, error: errorMessage }
     }
 }
 
@@ -28,8 +35,9 @@ export const signInWithEmail = async ({ email, password }: SignInFormData) => {
 
         return { success: true, data: response }
     } catch (e) {
-        console.log('Sign in failed', e)
-        return { success: false, error: 'Sign in failed' }
+        console.error('Sign in failed', e)
+        const errorMessage = e instanceof Error ? e.message : 'Sign in failed'
+        return { success: false, error: errorMessage }
     }
 }
 

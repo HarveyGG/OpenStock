@@ -5,6 +5,7 @@ import {nextCookies} from "better-auth/next-js";
 
 
 let authInstance: ReturnType<typeof betterAuth> | null = null;
+let authPromise: Promise<ReturnType<typeof betterAuth>> | null = null;
 
 
 export const getAuth = async () => {
@@ -12,30 +13,56 @@ export const getAuth = async () => {
         return authInstance;
     }
 
-    const mongoose = await connectToDatabase();
-    const db = mongoose.connection;
+    if (!authPromise) {
+        authPromise = (async () => {
+            const mongoose = await connectToDatabase();
+            const db = mongoose.connection;
 
-    if (!db) {
-        throw new Error("MongoDB connection not found!");
+            if (!db) {
+                throw new Error("MongoDB connection not found!");
+            }
+
+            authInstance = betterAuth({
+                database: mongodbAdapter(db as any),
+                secret: process.env.BETTER_AUTH_SECRET,
+                baseURL: process.env.BETTER_AUTH_URL,
+                emailAndPassword: {
+                    enabled: true,
+                    disableSignUp: false,
+                    requireEmailVerification: false,
+                    minPasswordLength: 8,
+                    maxPasswordLength: 128,
+                    autoSignIn: true,
+                },
+                plugins: [nextCookies()],
+            });
+
+            return authInstance;
+        })();
     }
 
-    authInstance = betterAuth({
-        database: mongodbAdapter(db as any),
-       secret: process.env.BETTER_AUTH_SECRET,
-        baseURL: process.env.BETTER_AUTH_URL,
-        emailAndPassword: {
-            enabled: true,
-            disableSignUp: false,
-            requireEmailVerification: false,
-            minPasswordLength: 8,
-            maxPasswordLength: 128,
-            autoSignIn: true,
-        },
-        plugins: [nextCookies()],
-
-    });
-
-    return authInstance;
+    return authPromise;
 }
 
-export const auth = await getAuth();
+export const auth = {
+    get api() {
+        return {
+            signUpEmail: async (params: any) => {
+                const authInstance = await getAuth();
+                return authInstance.api.signUpEmail(params);
+            },
+            signInEmail: async (params: any) => {
+                const authInstance = await getAuth();
+                return authInstance.api.signInEmail(params);
+            },
+            signOut: async (params: any) => {
+                const authInstance = await getAuth();
+                return authInstance.api.signOut(params);
+            },
+            getSession: async (params: any) => {
+                const authInstance = await getAuth();
+                return authInstance.api.getSession(params);
+            },
+        };
+    }
+};

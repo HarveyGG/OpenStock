@@ -18,7 +18,8 @@
     <img src="https://img.shields.io/badge/-Radix%20UI-black?style=for-the-badge&logoColor=white&logo=radixui&color=000000"/>
     <img src="https://img.shields.io/badge/-Better%20Auth-black?style=for-the-badge&logoColor=white&logo=betterauth&color=000000"/>
     <img src="https://img.shields.io/badge/-MongoDB-black?style=for-the-badge&logoColor=white&logo=mongodb&color=00A35C"/>
-    <img src="https://img.shields.io/badge/-Inngest-black?style=for-the-badge&logoColor=white&logo=inngest&color=000000"/>
+    <img src="https://img.shields.io/badge/-Redis-black?style=for-the-badge&logoColor=white&logo=redis&color=DC382D"/>
+    <img src="https://img.shields.io/badge/-BullMQ-black?style=for-the-badge&logoColor=white&logo=bullmq&color=FF6B6B"/>
     <img src="https://img.shields.io/badge/-Nodemailer-black?style=for-the-badge&logoColor=white&logo=gmail&color=EA4335"/>
     <img src="https://img.shields.io/badge/-TradingView-black?style=for-the-badge&logoColor=white&logo=tradingview&color=2962FF"/>
     <img src="https://img.shields.io/badge/-Finnhub-black?style=for-the-badge&logoColor=white&color=30B27A"/>
@@ -86,8 +87,10 @@ Auth & Data
 - TradingView embeddable widgets
 
 Automation & Comms
-- Inngest (events, cron, AI inference via Gemini)
-- Nodemailer (Gmail transport)
+- Redis + BullMQ (task queue for background jobs)
+- Node-cron (scheduled tasks)
+- Nodemailer (Gmail OAuth 2.0 transport)
+- Google Gemini API (AI-generated email content)
 - next-themes, cmdk (command palette), react-hook-form
 
 Language composition
@@ -111,8 +114,8 @@ Language composition
 - Personalized onboarding
     - Collects country, investment goals, risk tolerance, preferred industry
 - Email & automation
-    - AI-personalized welcome email (Gemini via Inngest)
-    - Daily news summary emails (cron) personalized using user watchlists
+    - AI-personalized welcome email (Gemini via BullMQ queue)
+    - Daily news summary emails (cron at 12:00 UTC) personalized using user watchlists
 - Polished UI
     - shadcn/ui components, Radix primitives, Tailwind v4 design tokens
     - Dark theme by default
@@ -156,11 +159,6 @@ pnpm dev
 npm run dev
 ```
 
-Run Inngest locally (workflows, cron, AI)
-```bash
-npx inngest-cli@latest dev
-```
-
 Build & start (production)
 ```bash
 pnpm build && pnpm start
@@ -176,9 +174,10 @@ You can run OpenStock and MongoDB easily with Docker Compose.
 
 1) Ensure Docker and Docker Compose are installed.
 
-2) docker-compose.yml includes two services:
-- openstock (this app)
+2) docker-compose.yml includes three services:
+- openstock (this app with BullMQ workers and cron scheduler)
 - mongodb (MongoDB database with a persistent volume)
+- redis (Redis for task queue)
 
 3) Create your `.env` (see examples below). For the Docker setup, use a local connection string like:
 ```env
@@ -246,12 +245,20 @@ FINNHUB_API_KEY=your_finnhub_key
 NEXT_PUBLIC_FINNHUB_API_KEY=
 FINNHUB_BASE_URL=https://finnhub.io/api/v1
 
-# Inngest AI (Gemini)
+# AI (Gemini for email personalization)
 GEMINI_API_KEY=your_gemini_api_key
 
-# Email (Nodemailer via Gmail; consider App Passwords if 2FA)
+# Redis (for task queue)
+REDIS_URL=redis://localhost:6379
+
+# Email (Nodemailer via Gmail OAuth 2.0 - recommended)
 NODEMAILER_EMAIL=youraddress@gmail.com
-NODEMAILER_PASSWORD=your_gmail_app_password
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REFRESH_TOKEN=your_google_refresh_token
+
+# Or use App Password (legacy)
+# NODEMAILER_PASSWORD=your_gmail_app_password
 ```
 
 Local (Docker Compose) MongoDB:
@@ -271,12 +278,20 @@ FINNHUB_API_KEY=your_finnhub_key
 NEXT_PUBLIC_FINNHUB_API_KEY=
 FINNHUB_BASE_URL=https://finnhub.io/api/v1
 
-# Inngest AI (Gemini)
+# AI (Gemini for email personalization)
 GEMINI_API_KEY=your_gemini_api_key
 
-# Email (Nodemailer via Gmail; consider App Passwords if 2FA)
+# Redis (for task queue)
+REDIS_URL=redis://localhost:6379
+
+# Email (Nodemailer via Gmail OAuth 2.0 - recommended)
 NODEMAILER_EMAIL=youraddress@gmail.com
-NODEMAILER_PASSWORD=your_gmail_app_password
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REFRESH_TOKEN=your_google_refresh_token
+
+# Or use App Password (legacy)
+# NODEMAILER_PASSWORD=your_gmail_app_password
 ```
 
 Notes
@@ -298,7 +313,7 @@ app/
     page.tsx
     help/page.tsx
     stocks/[symbol]/page.tsx
-  api/inngest/route.ts
+  api/health/route.ts
   globals.css
   layout.tsx
 components/
@@ -339,11 +354,12 @@ public/assets/images/   # logos and screenshots
     - Email/password with MongoDB adapter.
     - Session validation via middleware; most routes are protected, with public exceptions for `sign-in`, `sign-up`, assets and Next internals.
 
-- Inngest
-    - Workflows:
-        - `app/user.created` → AI-personalized Welcome Email
-        - Cron `0 12 * * *` → Daily News Summary per user
-    - Local dev: `npx inngest-cli@latest dev`.
+- Redis + BullMQ
+    - Task queues for background jobs:
+        - Welcome email queue (triggered on user registration)
+        - News email queue (triggered daily at 12:00 UTC)
+    - Workers process jobs asynchronously
+    - Cron scheduler triggers daily news emails
 
 - Email (Nodemailer)
     - Gmail transport. Update credentials or switch to your SMTP provider.
@@ -389,7 +405,7 @@ OpenStock is and will remain free and open for everyone. This project is license
 - Finnhub for accessible market data
 - TradingView for embeddable market widgets
 - shadcn/ui, Radix UI, Tailwind CSS, Next.js community
-- Inngest for dependable background jobs and workflows
+- Redis + BullMQ for reliable task queues and background jobs
 - Better Auth for simple and secure authentication
 - All contributors who make open tools possible
 
