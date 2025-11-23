@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
+import fs from 'fs';
 
 async function deleteUser() {
     const email = process.argv[2];
@@ -16,9 +17,13 @@ async function deleteUser() {
         process.exit(1);
     }
 
-    if (uri.includes('mongodb:27017') && !process.env.DOCKER_CONTAINER) {
+    const isInDocker = fs.existsSync('/.dockerenv');
+    
+    if (!isInDocker && uri.includes('mongodb:27017')) {
         uri = uri.replace('mongodb:27017', 'localhost:27018');
         console.log('💡 检测到本地环境，使用 localhost:27018 连接 MongoDB\n');
+    } else if (isInDocker) {
+        console.log('💡 检测到容器环境，使用 Docker 网络中的 MongoDB\n');
     }
 
     try {
