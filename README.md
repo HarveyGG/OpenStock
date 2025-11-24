@@ -144,12 +144,7 @@ npm install
 
 Configure environment
 - Create a `.env` file (see [Environment Variables](#environment-variables)).
-- Verify DB connectivity:
-```bash
-pnpm test:db
-# or
-npm run test:db
-```
+- For Docker setup, see [Docker Setup](#docker-setup) section.
 
 Run development
 ```bash
@@ -168,36 +163,50 @@ npm run build && npm start
 
 Open http://localhost:3000 to view the app.
 
-## 🐳 Docker Setup
+## 🐳 Docker Setup (Recommended)
 
-You can run OpenStock and MongoDB easily with Docker Compose.
+OpenStock is designed to run with Docker Compose, which includes all required services (app, MongoDB, Redis) in a single command.
 
 1) Ensure Docker and Docker Compose are installed.
 
 2) docker-compose.yml includes three services:
-- openstock (this app with BullMQ workers and cron scheduler)
-- mongodb (MongoDB database with a persistent volume)
-- redis (Redis for task queue)
+- **openstock**: The Next.js app with BullMQ workers and cron scheduler
+- **mongodb**: MongoDB database with a persistent volume
+- **redis**: Redis for BullMQ task queue
 
-3) Create your `.env` (see examples below). For the Docker setup, use a local connection string like:
+3) Create your `.env` file (see [Environment Variables](#environment-variables)). For Docker setup, use:
 ```env
 MONGODB_URI=mongodb://root:example@mongodb:27017/openstock?authSource=admin
+REDIS_URL=redis://redis:6379
 ```
 
 4) Start the stack:
 ```bash
-# from the repository root
-docker compose up -d mongodb && docker compose up -d --build
+# Build and start all services
+docker compose up -d --build
+
+# View logs
+docker compose logs -f
+
+# Check service status
+docker compose ps
 ```
 
 5) Access the app:
-- App: http://localhost:3000
-- MongoDB is available inside the Docker network at host mongodb:27017
+- **App**: http://localhost:3000
+- **MongoDB**: Available inside Docker network at `mongodb:27017` (host port: 27018)
+- **Redis**: Available inside Docker network at `redis:6379` (host port: 6379)
+
+6) Test database connectivity (inside container):
+```bash
+docker compose exec openstock pnpm test:db
+```
 
 Notes
-- The app service depends_on the mongodb service.
-- Credentials are defined in Compose for the MongoDB root user; authSource=admin is required on the connection string for root.
-- Data persists across restarts via the docker volume.
+- All services start automatically with health checks
+- MongoDB credentials: root / example (defined in docker-compose.yml)
+- Data persists across restarts via Docker volumes
+- For detailed Docker usage, see [DOCKER.md](./DOCKER.md)
 
 Optional: Example MongoDB service definition used in this project:
 ```yaml
@@ -330,11 +339,11 @@ lib/
   nodemailer/…  # transporter, email templates
   constants.ts, utils.ts
 scripts/
-  delete-user.mjs    # Delete user and related data
+  delete-user.mjs    # Delete user and related data (run in container)
   start-all.mjs      # Start all services (Next.js, workers, cron)
   start-cron.ts      # Cron scheduler for daily news emails
   start-worker.mjs   # Start BullMQ workers
-  test-db.mjs        # Test database connectivity
+  test-db.mjs        # Test database connectivity (run in container)
 types/
   global.d.ts
 next.config.ts          # i.ibb.co image domain allowlist
@@ -376,14 +385,15 @@ Package scripts
 - `build`: Production build (Turbopack)
 - `start`: Run production server
 - `lint`: ESLint
-- `test:db`: Validate DB connectivity
 
-Utility scripts
+Utility scripts (for Docker environment)
 - `scripts/delete-user.mjs`: Delete a user and all related data (sessions, watchlist)
+  - Usage: `docker compose exec openstock node scripts/delete-user.mjs <email>`
 - `scripts/start-all.mjs`: Start all services (Next.js app, BullMQ workers, cron scheduler)
 - `scripts/start-worker.mjs`: Start BullMQ workers for processing queue jobs
 - `scripts/start-cron.ts`: Start cron scheduler for daily news emails
-- `scripts/test-db.mjs`: Test MongoDB database connectivity
+- `scripts/test-db.mjs`: Test MongoDB database connectivity (use inside container)
+  - Usage: `docker compose exec openstock pnpm test:db`
 
 Developer experience
 - TypeScript strict mode

@@ -110,6 +110,9 @@ docker compose restart
 docker compose exec openstock sh
 docker compose exec mongodb mongosh -u root -p example
 
+# 测试数据库连接（在容器内）
+docker compose exec openstock pnpm test:db
+
 # 查看 Redis 队列状态
 docker compose exec redis redis-cli KEYS "bull:*"
 
@@ -131,6 +134,7 @@ docker compose down
 1. 确认 `MONGODB_URI` 使用 `mongodb` 作为主机名（不是 `localhost`）
 2. 检查 MongoDB 健康状态：`docker compose ps`
 3. 查看 MongoDB 日志：`docker compose logs mongodb`
+4. 测试数据库连接：`docker compose exec openstock pnpm test:db`
 
 ### 端口冲突
 如果 3000 或 27017 端口被占用，可以修改 `docker-compose.yml` 中的端口映射：

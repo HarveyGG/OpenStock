@@ -1,11 +1,21 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
+import fs from 'fs';
 
 async function main() {
-    const uri = process.env.MONGODB_URI;
+    let uri = process.env.MONGODB_URI;
     if (!uri) {
         console.error('ERROR: MONGODB_URI must be set in .env');
         process.exit(1);
+    }
+
+    const isInDocker = fs.existsSync('/.dockerenv');
+    
+    if (!isInDocker && uri.includes('mongodb:27017')) {
+        uri = uri.replace('mongodb:27017', 'localhost:27018');
+        console.log('💡 检测到本地环境，使用 localhost:27018 连接 MongoDB\n');
+    } else if (isInDocker) {
+        console.log('💡 检测到容器环境，使用 Docker 网络中的 MongoDB\n');
     }
 
     try {
