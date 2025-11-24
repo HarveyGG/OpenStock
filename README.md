@@ -326,11 +326,15 @@ database/
 lib/
   actions/…     # server actions (auth, finnhub, user, watchlist)
   better-auth/…
-  inngest/…     # client, functions, prompts
+  queue/…       # BullMQ client, workers
   nodemailer/…  # transporter, email templates
   constants.ts, utils.ts
 scripts/
-  test-db.mjs
+  delete-user.mjs    # Delete user and related data
+  start-all.mjs      # Start all services (Next.js, workers, cron)
+  start-cron.ts      # Cron scheduler for daily news emails
+  start-worker.mjs   # Start BullMQ workers
+  test-db.mjs        # Test database connectivity
 types/
   global.d.ts
 next.config.ts          # i.ibb.co image domain allowlist
@@ -373,6 +377,13 @@ Package scripts
 - `start`: Run production server
 - `lint`: ESLint
 - `test:db`: Validate DB connectivity
+
+Utility scripts
+- `scripts/delete-user.mjs`: Delete a user and all related data (sessions, watchlist)
+- `scripts/start-all.mjs`: Start all services (Next.js app, BullMQ workers, cron scheduler)
+- `scripts/start-worker.mjs`: Start BullMQ workers for processing queue jobs
+- `scripts/start-cron.ts`: Start cron scheduler for daily news emails
+- `scripts/test-db.mjs`: Test MongoDB database connectivity
 
 Developer experience
 - TypeScript strict mode
