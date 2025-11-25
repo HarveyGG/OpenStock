@@ -25,7 +25,10 @@
 ```env
 REDIS_URL=redis://redis:6379
 MONGODB_URI=mongodb://root:example@mongodb:27017/openstock?authSource=admin
+# AI Provider (可选)
+AI_PROVIDER=auto
 GEMINI_API_KEY=你的_gemini_api_key
+OPENAI_API_KEY=你的_openai_api_key
 NODEMAILER_EMAIL=你的邮箱
 GOOGLE_CLIENT_ID=你的_google_client_id
 GOOGLE_CLIENT_SECRET=你的_google_client_secret

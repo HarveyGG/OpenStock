@@ -21,8 +21,15 @@ BETTER_AUTH_URL=http://localhost:3000
 FINNHUB_API_KEY=your_finnhub_key
 FINNHUB_BASE_URL=https://finnhub.io/api/v1
 
-# AI (Gemini for email personalization)
+# AI Provider (可选 - 用于个性化邮件内容)
+# 选择: 'gemini', 'openai', 或 'auto' (默认: auto)
+AI_PROVIDER=auto
+# Gemini 配置
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.0-flash-exp
+# OpenAI 配置
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
 
 # Redis (automatically configured in Docker)
 REDIS_URL=redis://redis:6379

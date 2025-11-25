@@ -255,7 +255,15 @@ NEXT_PUBLIC_FINNHUB_API_KEY=
 FINNHUB_BASE_URL=https://finnhub.io/api/v1
 
 # AI (Gemini for email personalization)
+# AI Provider (optional - for personalized email content)
+# Choose one: 'gemini', 'openai', or 'auto' (default: auto)
+AI_PROVIDER=auto
+# For Gemini
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.0-flash-exp
+# For OpenAI
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
 
 # Redis (for task queue)
 REDIS_URL=redis://localhost:6379
@@ -288,7 +296,15 @@ NEXT_PUBLIC_FINNHUB_API_KEY=
 FINNHUB_BASE_URL=https://finnhub.io/api/v1
 
 # AI (Gemini for email personalization)
+# AI Provider (optional - for personalized email content)
+# Choose one: 'gemini', 'openai', or 'auto' (default: auto)
+AI_PROVIDER=auto
+# For Gemini
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.0-flash-exp
+# For OpenAI
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
 
 # Redis (for task queue)
 REDIS_URL=redis://localhost:6379
