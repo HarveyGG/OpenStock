@@ -9,7 +9,7 @@ const logTime = () => {
 
 console.log('⏰ Starting daily news email cron job...');
 logTime();
-console.log('📅 Schedule: Every day at 12:00 UTC (noon)');
+console.log('📅 Schedule: Every day at 12:00 PM Vancouver time (noon)');
 
 const scheduleJob = () => {
     console.log('📰 Triggering daily news email job...');
@@ -26,20 +26,26 @@ const scheduleJob = () => {
 };
 
 cron.schedule('0 12 * * *', scheduleJob, {
-    timezone: 'UTC'
+    timezone: 'America/Vancouver'
 });
 
 console.log('✅ Cron scheduler started');
-console.log('💡 Next trigger: 12:00 UTC (check logs for actual execution)');
+console.log('💡 Next trigger: 12:00 PM Vancouver time (check logs for actual execution)');
 
 const nextTrigger = () => {
     const now = new Date();
-    const next = new Date(now);
-    next.setUTCHours(12, 0, 0, 0);
-    if (next <= now) {
-        next.setUTCDate(next.getUTCDate() + 1);
-    }
-    console.log(`⏰ Next scheduled trigger: ${next.toISOString()}`);
+    const vancouverTime = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Vancouver',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    }).format(now);
+    
+    const hour = parseInt(vancouverTime.split(':')[0]);
+    const isToday = hour < 12;
+    
+    const displayDate = isToday ? 'today' : 'tomorrow';
+    console.log(`⏰ Next scheduled trigger: ${displayDate} at 12:00 PM (Vancouver time)`);
 };
 nextTrigger();
 
