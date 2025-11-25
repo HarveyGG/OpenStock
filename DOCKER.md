@@ -15,7 +15,7 @@ MONGODB_URI=mongodb://root:example@mongodb:27017/openstock?authSource=admin
 
 # Better Auth
 BETTER_AUTH_SECRET=your_better_auth_secret
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:3003
 
 # Finnhub (必需)
 FINNHUB_API_KEY=your_finnhub_key
@@ -73,15 +73,15 @@ docker compose down -v
 
 ### 3. 访问应用
 
-- **应用地址**：http://localhost:3000
+- **应用地址**：http://localhost:3003
 - **MongoDB**：localhost:27017（仅在 Docker 网络内使用 `mongodb:27017`）
 
 ## 服务说明
 
 ### openstock-app
 - **容器名**：`openstock-app`
-- **端口**：3000
-- **健康检查**：http://localhost:3000/api/health
+- **端口**：3003 (host) -> 3000 (container)
+- **健康检查**：http://localhost:3003/api/health
 - **自动重启**：是
 
 ### openstock-mongodb
@@ -144,10 +144,10 @@ docker compose down
 4. 测试数据库连接：`docker compose exec openstock pnpm test:db`
 
 ### 端口冲突
-如果 3000 或 27017 端口被占用，可以修改 `docker-compose.yml` 中的端口映射：
+如果 3003 或 27017 端口被占用，可以修改 `docker-compose.yml` 中的端口映射：
 ```yaml
 ports:
-  - "3001:3000"  # 将 3001 映射到容器的 3000
+  - "3004:3000"  # 将 3004 映射到容器的 3000
 ```
 
 ## 数据持久化

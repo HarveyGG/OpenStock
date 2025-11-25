@@ -161,7 +161,7 @@ pnpm build && pnpm start
 npm run build && npm start
 ```
 
-Open http://localhost:3000 to view the app.
+Open http://localhost:3003 to view the app.
 
 ## 🐳 Docker Setup (Recommended)
 
@@ -193,7 +193,7 @@ docker compose ps
 ```
 
 5) Access the app:
-- **App**: http://localhost:3000
+- **App**: http://localhost:3003
 - **MongoDB**: Available inside Docker network at `mongodb:27017` (host port: 27018)
 - **Redis**: Available inside Docker network at `redis:6379` (host port: 6379)
 
@@ -246,7 +246,7 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majori
 
 # Better Auth
 BETTER_AUTH_SECRET=your_better_auth_secret
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:3003
 
 # Finnhub
 FINNHUB_API_KEY=your_finnhub_key
@@ -288,7 +288,7 @@ MONGODB_URI=mongodb://root:example@mongodb:27017/openstock?authSource=admin
 
 # Better Auth
 BETTER_AUTH_SECRET=your_better_auth_secret
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:3003
 
 # Finnhub
 FINNHUB_API_KEY=your_finnhub_key

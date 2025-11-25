@@ -12,7 +12,7 @@
 ## Docker 服务
 
 启动 Docker Compose 后会自动启动：
-1. **Next.js 应用** (端口 3000)
+1. **Next.js 应用** (端口 3003)
 2. **MongoDB** (端口 27018)
 3. **Redis** (端口 6379)
 4. **BullMQ Workers** (后台运行)
