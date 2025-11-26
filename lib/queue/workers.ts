@@ -4,7 +4,7 @@ import { sendWelcomeEmail, sendNewsSummaryEmail } from '@/lib/nodemailer';
 import { getAllUsersForNewsEmail } from '@/lib/actions/user.actions';
 import { getWatchlistSymbolsByEmail } from '@/lib/actions/watchlist.actions';
 import { getNews } from '@/lib/actions/finnhub.actions';
-import { getFormattedTodayDate } from '@/lib/utils';
+import { getFormattedTodayDate, getTodayString } from '@/lib/utils';
 import { PERSONALIZED_WELCOME_EMAIL_PROMPT, NEWS_SUMMARY_EMAIL_PROMPT } from '@/lib/inngest/prompts';
 import { createAIProvider } from '@/lib/ai/factory';
 
@@ -143,6 +143,17 @@ export const newsEmailWorker = new Worker(
             }
         }
 
+        const now = new Date();
+        const vancouverDateStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Vancouver',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(now);
+        
+        await connection.set('last-news-email-date', vancouverDateStr);
+        console.log(`📅 Last news email date recorded: ${vancouverDateStr} (Vancouver time)`);
+        
         return { success: true, usersProcessed: users.length };
     },
     { connection }
