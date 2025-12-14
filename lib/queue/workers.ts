@@ -94,9 +94,35 @@ export const welcomeEmailWorker = new Worker(
 export const newsEmailWorker = new Worker(
     'news-email',
     async (job) => {
+        const now = new Date();
+        const vancouverDateStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Vancouver',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(now);
+        
+        const lockKey = `news-email-sent-${vancouverDateStr}`;
+        
+        const alreadySent = await connection.get(lockKey);
+        if (alreadySent) {
+            console.log(`🔒 News email already sent for ${vancouverDateStr}, skipping duplicate job`);
+            return { success: false, message: 'Duplicate job skipped - already sent today', skipped: true };
+        }
+        
+        const lockTTL = 86400;
+        const lockAcquired = await connection.set(lockKey, 'processing', 'EX', lockTTL, 'NX');
+        if (!lockAcquired) {
+            console.log(`🔒 News email job already in progress for ${vancouverDateStr}, skipping duplicate job`);
+            return { success: false, message: 'Duplicate job skipped', skipped: true };
+        }
+        
+        console.log(`🔐 Acquired lock for news email job on ${vancouverDateStr}`);
+        
         const users = await getAllUsersForNewsEmail();
         
         if (!users || users.length === 0) {
+            await connection.del(lockKey);
             return { success: false, message: 'No users found' };
         }
 
@@ -121,6 +147,8 @@ export const newsEmailWorker = new Worker(
         }
 
         const date = getFormattedTodayDate();
+        let successCount = 0;
+        let failCount = 0;
         
         for (const { user, articles } of perUser) {
             try {
@@ -135,26 +163,26 @@ export const newsEmailWorker = new Worker(
                         newsContent 
                     });
                     console.log(`✅ News email sent to: ${user.email}`);
+                    successCount++;
                 } else {
                     console.log(`⚠️ Skipping email to ${user.email}: empty news content`);
                 }
             } catch (e) {
                 console.error('Failed to send news email to:', user.email, e);
+                failCount++;
             }
         }
 
-        const now = new Date();
-        const vancouverDateStr = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'America/Vancouver',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).format(now);
+        if (successCount > 0) {
+            await connection.set('last-news-email-date', vancouverDateStr);
+            await connection.set(lockKey, 'sent', 'EX', lockTTL);
+            console.log(`📅 Last news email date recorded: ${vancouverDateStr} (Vancouver time) - ${successCount} sent, ${failCount} failed`);
+        } else {
+            await connection.del(lockKey);
+            console.log(`❌ No emails sent successfully. Not updating last-news-email-date. ${failCount} failed.`);
+        }
         
-        await connection.set('last-news-email-date', vancouverDateStr);
-        console.log(`📅 Last news email date recorded: ${vancouverDateStr} (Vancouver time)`);
-        
-        return { success: true, usersProcessed: users.length };
+        return { success: successCount > 0, usersProcessed: users.length, successCount, failCount };
     },
     { connection }
 );

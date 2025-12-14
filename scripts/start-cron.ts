@@ -16,7 +16,7 @@ const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
     maxRetriesPerRequest: null,
 });
 
-const checkAndSendMissedEmail = async () => {
+const checkAndSendMissedEmail = async (): Promise<void> => {
     const now = new Date();
     const vancouverTimeStr = new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/Vancouver',
@@ -56,22 +56,49 @@ const checkAndSendMissedEmail = async () => {
         console.log('📧 Detected missed email! Triggering catch-up send...');
         await scheduleJob();
     } else if (alreadySent) {
-        console.log('✅ Email already sent today, skipping catch-up');
+        console.log('✅ Email already sent today, skipping check (will continue monitoring for tomorrow)');
     } else {
-        console.log('⏳ Not yet time to send (before 12:00 PM), skipping catch-up');
+        console.log('⏳ Not yet time to send (before 12:00 PM), will continue checking');
     }
 };
 
 const scheduleJob = async () => {
+    const now = new Date();
+    const vancouverDateStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Vancouver',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(now);
+    
+    const jobId = `daily-news-${vancouverDateStr}`;
+    const queueLockKey = `news-email-queue-lock-${vancouverDateStr}`;
+    
+    const lockAcquired = await redis.set(queueLockKey, Date.now().toString(), 'EX', 300, 'NX');
+    if (!lockAcquired) {
+        console.log(`⏭️ Another process is already queuing job for ${vancouverDateStr}, skipping`);
+        return;
+    }
+    
     console.log('📰 Triggering daily news email job...');
     logTime();
     
     try {
+        const existingJob = await newsEmailQueue.getJob(jobId);
+        if (existingJob) {
+            const state = await existingJob.getState();
+            if (state === 'active' || state === 'waiting' || state === 'delayed' || state === 'completed') {
+                console.log(`⏭️ Job ${jobId} already exists with state: ${state}, skipping duplicate`);
+                return;
+            }
+        }
+        
         await newsEmailQueue.add('send-daily-news', {}, {
-            removeOnComplete: true,
+            jobId,
+            removeOnComplete: false,
             removeOnFail: false
         });
-        console.log('✅ Daily news email job queued successfully');
+        console.log(`✅ Daily news email job queued successfully with jobId: ${jobId}`);
     } catch (error) {
         console.error('❌ Failed to queue daily news email:', error);
     }
@@ -101,8 +128,21 @@ const nextTrigger = () => {
 };
 nextTrigger();
 
-setTimeout(async () => {
+let checkInterval: NodeJS.Timeout | null = null;
+
+const startPeriodicCheck = async () => {
     await checkAndSendMissedEmail();
+    
+    if (!checkInterval) {
+        console.log('🔄 Starting periodic check every 10 minutes (will continue running daily)...');
+        checkInterval = setInterval(async () => {
+            await checkAndSendMissedEmail();
+        }, 10 * 60 * 1000);
+    }
+};
+
+setTimeout(async () => {
+    await startPeriodicCheck();
 }, 3000);
 
 if (process.env.MANUAL_TRIGGER === 'true') {
@@ -114,12 +154,18 @@ if (process.env.MANUAL_TRIGGER === 'true') {
 
 process.on('SIGTERM', async () => {
     console.log('SIGTERM received, shutting down gracefully...');
+    if (checkInterval) {
+        clearInterval(checkInterval);
+    }
     await redis.quit();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     console.log('SIGINT received, shutting down gracefully...');
+    if (checkInterval) {
+        clearInterval(checkInterval);
+    }
     await redis.quit();
     process.exit(0);
 });
