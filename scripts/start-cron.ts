@@ -44,6 +44,7 @@ const checkAndSendMissedEmail = async (): Promise<void> => {
     
     const shouldHaveSent = currentHour >= 12;
     const alreadySent = lastSentDate === vancouverDateStr;
+    const hasMissedDays = lastSentDate && lastSentDate < vancouverDateStr;
     
     console.log(`🔍 Checking missed email status:`);
     console.log(`   Current Vancouver time: ${vancouverTimeStr}`);
@@ -51,12 +52,13 @@ const checkAndSendMissedEmail = async (): Promise<void> => {
     console.log(`   Last sent date: ${lastSentDate || 'never'}`);
     console.log(`   Should have sent today: ${shouldHaveSent}`);
     console.log(`   Already sent today: ${alreadySent}`);
+    console.log(`   Has missed days: ${hasMissedDays}`);
     
-    if (shouldHaveSent && !alreadySent) {
+    if (alreadySent) {
+        console.log('✅ Email already sent today, skipping check (will continue monitoring for tomorrow)');
+    } else if (shouldHaveSent || hasMissedDays) {
         console.log('📧 Detected missed email! Triggering catch-up send...');
         await scheduleJob();
-    } else if (alreadySent) {
-        console.log('✅ Email already sent today, skipping check (will continue monitoring for tomorrow)');
     } else {
         console.log('⏳ Not yet time to send (before 12:00 PM), will continue checking');
     }
