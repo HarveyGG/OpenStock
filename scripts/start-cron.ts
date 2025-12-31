@@ -46,6 +46,9 @@ const checkAndSendMissedEmail = async (): Promise<void> => {
     const alreadySent = lastSentDate === vancouverDateStr;
     const hasMissedDays = lastSentDate && lastSentDate < vancouverDateStr;
     
+    const lockKey = `news-email-sent-${vancouverDateStr}`;
+    const lockExists = await redis.get(lockKey);
+    
     console.log(`🔍 Checking missed email status:`);
     console.log(`   Current Vancouver time: ${vancouverTimeStr}`);
     console.log(`   Today's date (Vancouver): ${vancouverDateStr}`);
@@ -53,10 +56,15 @@ const checkAndSendMissedEmail = async (): Promise<void> => {
     console.log(`   Should have sent today: ${shouldHaveSent}`);
     console.log(`   Already sent today: ${alreadySent}`);
     console.log(`   Has missed days: ${hasMissedDays}`);
+    console.log(`   Lock key exists: ${lockExists ? 'yes' : 'no'}`);
     
     if (alreadySent) {
         console.log('✅ Email already sent today, skipping check (will continue monitoring for tomorrow)');
     } else if (shouldHaveSent || hasMissedDays) {
+        if (lockExists && lockExists === 'sent') {
+            console.log('⚠️ Lock key exists but last-news-email-date is outdated. Clearing lock and retrying...');
+            await redis.del(lockKey);
+        }
         console.log('📧 Detected missed email! Triggering catch-up send...');
         await scheduleJob();
     } else {
